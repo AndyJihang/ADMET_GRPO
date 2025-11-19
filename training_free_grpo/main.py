@@ -111,6 +111,10 @@ async def rollout_dataset(
                         "rollout_time": task_end_time - task_start_time,
                     }
                 )
+                print("\n===== DEBUG main.py worker =====")
+                print("sample BEFORE verify:", sample)
+                print("groundtruth:", sample["groundtruth"])
+                print("=================================\n")
                 sample["reward"] = verify_func(sample, sample["groundtruth"])
                 
                 # Task succeeded
