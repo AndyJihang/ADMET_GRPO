@@ -1,6 +1,7 @@
 # training_free_grpo/admet/verify.py
 import re
-from typing import Dict, Any, Tuple
+from typing import Any, Dict, List, Tuple, Sequence
+from collections.abc import Sequence as ABCSequence
 import math
 
 FLOAT_RE = re.compile(r"-?\d+\.?\d*")
@@ -68,28 +69,67 @@ def verify_one(sample, response):
 
 
 
-def verify_func(samples: list[Dict[str, Any]], responses: list[str]) -> Tuple[list[float], Dict[str, float]]:
+def verify_func(
+    samples: Any,
+    responses: Any,
+) -> Tuple[List[float], Dict[str, float]]:
+    """
+    通用的 verify 函数：
+    - 支持两种调用方式：
+        1) verify_func(sample_dict, response_str)
+        2) verify_func(list_of_samples, list_of_responses)
+    - 内部统一转成 list 后，用 verify_one 逐个计算 reward 和 correct。
+    """
+
+    # -------- 1. 统一 samples 为 list[dict] --------
+    # 如果传进来是单个 sample（dict），而不是 list，就包一层 list
+    if not isinstance(samples, ABCSequence) or isinstance(samples, (str, bytes)):
+        samples_list: List[Dict[str, Any]] = [samples]
+    else:
+        samples_list = list(samples)
+
+    # -------- 2. 统一 responses 为 list[str] / list[float] --------
+    if not isinstance(responses, ABCSequence) or isinstance(responses, (str, bytes)):
+        responses_list: List[Any] = [responses]
+    else:
+        responses_list = list(responses)
+
     print("\n===== DEBUG verify_func =====")
-    print("samples type:", type(samples))
-    print("samples content:", samples)
-    print("responses type:", type(responses))
-    print("responses content:", responses)
+    print("samples type:", type(samples), "-> normalized to list, len:", len(samples_list))
+    print("responses type:", type(responses), "-> normalized to list, len:", len(responses_list))
     print("==============================\n")
-    rewards: list[float] = []
+
+    # -------- 3. 对齐长度，避免 zip 截断太多或抛错 --------
+    if len(samples_list) != len(responses_list):
+        raise ValueError(
+            f"verify_func: len(samples)={len(samples_list)} "
+            f"!= len(responses)={len(responses_list)}"
+        )
+
+    rewards: List[float] = []
     num_correct = 0
 
-    for sample, resp in zip(samples, responses):
-        res = verify_one(sample, resp)
+    # -------- 4. 逐个调用 verify_one --------
+    for sample, resp in zip(samples_list, responses_list):
+        # 如果 response 是 float，就转成字符串（或你在 verify_one 里怎么处理就按你的逻辑）
+        if not isinstance(resp, str):
+            resp_for_verify = str(resp)
+        else:
+            resp_for_verify = resp
+
+        res = verify_one(sample, resp_for_verify)
         rewards.append(res["reward"])
-        if res["correct"]:
+        if res.get("correct", False):
             num_correct += 1
 
+    # -------- 5. 聚合统计信息 --------
     avg_reward = sum(rewards) / len(rewards) if rewards else 0.0
     pass_rate = num_correct / len(rewards) if rewards else 0.0
 
     stats = {
         "avg_reward": avg_reward,
-        "Pass@3": pass_rate,  # 这里你可以改名 / 重定义，先复用字段名也行
+        # 这里名称沿用你之前的字段，语义就是“这一批里正确比例”
+        "Pass@3": pass_rate,
     }
 
     return rewards, stats
