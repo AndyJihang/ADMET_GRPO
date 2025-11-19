@@ -69,6 +69,12 @@ def verify_one(sample, response):
 
 
 def verify_func(samples: list[Dict[str, Any]], responses: list[str]) -> Tuple[list[float], Dict[str, float]]:
+    print("\n===== DEBUG verify_func =====")
+    print("samples type:", type(samples))
+    print("samples content:", samples)
+    print("responses type:", type(responses))
+    print("responses content:", responses)
+    print("==============================\n")
     rewards: list[float] = []
     num_correct = 0
 
