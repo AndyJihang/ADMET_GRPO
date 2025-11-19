@@ -31,6 +31,11 @@ def parse_float_from_response(response: str) -> float | None:
 
 
 def verify_one(sample, response):
+    print("\n===== DEBUG verify_one =====")
+    print("sample type:", type(sample))
+    print("sample content:", sample)
+    print("response:", response)
+    print("============================\n")
     y_true = float(sample["groundtruth"])
     y_pred = parse_float_from_response(response)
 
