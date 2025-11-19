@@ -218,17 +218,27 @@ class ExperienceUpdater:
             results = json.load(open(filename))
             print("- File exists, loaded from:", filename)
             return results
-        
-        # collect operations
+
+        # --- DEBUG 1: 看 experiences 原始结构 ---
+        print("=== DEBUG experiences in _batch_update ===")
+        print("type(experiences):", type(experiences))
+        if isinstance(experiences, dict):
+            items = list(experiences.items())
+            print("len(experiences):", len(items))
+            print("first 3 items:", items[:3])
+        else:
+            print("experiences value:", experiences)
+            
+        # 收集所有 critique 里的 operations
         all_operations = []
         for each in critiques:
             try:
                 all_operations.extend(each["operations"])
-            except:
-                print(f"Warning: failed to decode operation: {each}")
+            except Exception as e:
+                print(f"Warning: failed to decode operation from critique: {each} | {e}")
         print("- Num of operations to process:", len(all_operations))
 
-        # split experiences
+        # 按 operations 拆分 experiences
         candidate_experiences = copy.deepcopy(experiences)
         to_modify = []
         max_ID = 0
@@ -240,15 +250,16 @@ class ExperienceUpdater:
                 elif operation["option"] == "add":
                     candidate_experiences[f"C{max_ID}"] = operation["experience"]
                     max_ID += 1
-            except:
-                print(f"Warning: failed to decode operation: {operation}")
+            except Exception as e:
+                print(f"Warning: failed to decode single operation: {operation} | {e}")
 
         print("- Num of added experiences:", max_ID)
         print("- Num of experiences to be modified:", len(to_modify))
         print("- Num of candidate experiences:", len(candidate_experiences))
 
-        # use LLM to get the revision plan
+        # 用 LLM 生成 revision_plan
         revision_plan = []
+        last_error = None
         for _ in range(max_retries):
             try:
                 response = self.llm.chat(
@@ -257,14 +268,70 @@ class ExperienceUpdater:
                         updates=to_modify
                     )
                 )
-                revision_plan = json.loads(response.split("```json")[-1].split("```")[0])
-                break
-            except Exception:
-                print("Warning: failed to decode in updating general experiences")
+                # --- DEBUG 2: 原始返回字符串 ---
+                print("=== RAW LLM response in _batch_update ===")
+                print(response)
 
-        # modify candidate experiences
+                # 尝试从 ```json ... ``` 里面截出真正的 JSON
+                payload = response.split("```json")[-1].split("```")[0]
+                revision_plan = json.loads(payload)
+
+                # --- DEBUG 3: revision_plan 结构 ---
+                print("=== DEBUG revision_plan after json.loads ===")
+                print("type(revision_plan):", type(revision_plan))
+                if isinstance(revision_plan, dict):
+                    print("revision_plan keys:", list(revision_plan.keys()))
+                elif isinstance(revision_plan, list):
+                    print("len(revision_plan):", len(revision_plan))
+                    print("first 3 revision_plan items:", revision_plan[:3])
+                else:
+                    print("revision_plan value:", revision_plan)
+
+                break
+            except Exception as e:
+                last_error = e
+                print("Warning: failed to decode in updating general experiences:", e)
+
+        # 如果多次尝试都没成功，直接返回原 candidate_experiences
+        if not revision_plan:
+            print("Warning: empty or invalid revision_plan, skip updating experiences.")
+            if last_error is not None:
+                print("Last error when decoding revision_plan:", last_error)
+            return candidate_experiences
+
+        # --- DEBUG 4: 把 revision_plan 统一整理成 list[dict] ---
+        if isinstance(revision_plan, dict):
+            # 如果是 dict，例如 {"rule_id": {...}}, 把 value 当作 operation
+            print("Note: revision_plan is dict, converting to list of its values.")
+            rp_list = []
+            for k, v in revision_plan.items():
+                if isinstance(v, dict) and "modified_from" not in v:
+                    # 没有 modified_from 的话，把 key 塞进去
+                    v.setdefault("modified_from", k)
+                rp_list.append(v)
+            revision_plan_list = rp_list
+        elif isinstance(revision_plan, list):
+            revision_plan_list = revision_plan
+        else:
+            print("Warning: revision_plan is neither dict nor list, skip updating.")
+            return candidate_experiences
+
+        # 过滤掉不是 dict 的 operation，避免 'string indices must be integers'
+        valid_operations = []
+        for op in revision_plan_list:
+            if not isinstance(op, dict):
+                print("Warning: skip invalid operation (not a dict):", op)
+                continue
+            if "option" not in op:
+                print("Warning: skip operation without 'option':", op)
+                continue
+            valid_operations.append(op)
+
+        print(f"- Num of valid operations in revision_plan: {len(valid_operations)}")
+
+        # 真正修改 experiences
         new_experiences = copy.deepcopy(candidate_experiences)
-        for operation in revision_plan:
+        for operation in valid_operations:
             try:
                 if operation["option"] == "modify":
                     new_experiences[operation["modified_from"]] = operation["experience"]
@@ -279,9 +346,10 @@ class ExperienceUpdater:
                     max_ID += 1
             except Exception as e:
                 print("Error: failed to complete experience update:", operation, "|", e)
+
         print("- Num of revised candidate experiences:", len(new_experiences))
 
-        # write to file
+        # 写文件
         with open(filename, "w") as f:
             json.dump(
                 {
