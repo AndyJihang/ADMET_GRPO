@@ -1,0 +1,28 @@
+agent:
+  name: admet_agent
+  description: >
+    An ADMET prediction assistant that predicts Caco-2 permeability
+    from SMILES. It must output only a single float (log(cm/s)).
+  model:
+    provider: openai
+    model: gpt-4.1-mini   # 或你现在在用的那个
+    temperature: 0.7
+    max_tokens: 256
+
+  # 如果 math_agent 是 tools-enabled 的，你这里可以先不加任何 tools
+  tools: []   # 先禁用 execute_python_code，便于 debug
+
+  system_prompt: |
+    You are an ADMET prediction assistant.
+
+    Task:
+    Given a molecule represented by SMILES, predict its Caco-2 permeability
+    (Wang dataset, unit: log(cm/s)).
+
+    Requirements:
+    - You MUST return ONLY a single float number (no units, no explanation).
+    - Do NOT output any additional text.
+
+    Typical Caco-2 log(cm/s) values are often in the approximate range [-8, 1].
+    Use your knowledge of molecular properties (lipophilicity, hydrogen bonding,
+    polarity, etc.) to make a plausible prediction within this range.
