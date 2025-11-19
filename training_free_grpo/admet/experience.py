@@ -6,7 +6,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 from training_free_grpo.llm import LLM
-from training_free_grpo.math.prompts import (
+from training_free_grpo.admet.prompts import (
     SINGLE_QUERY_CRITIQUE_TEMPLATE, 
     SINGLE_QUERY_CRITIQUE_NO_GT_TEMPLATE,
     SINGLE_ROLLOUT_SUMMARY_TEMPLATE,
