@@ -255,7 +255,7 @@ async def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training-Free GRPO Evaluation")
     parser.add_argument("--mode", type=str, default="agent", required=True, choices=["prompt", "agent"], help="Mode of inference")
-    parser.add_argument("--domain", type=str, required=True, choices=["math", "web"], help="The domain of the experiment")
+    parser.add_argument("--domain", type=str, required=True, choices=["math", "web", "admet"], help="The domain of the experiment")
     parser.add_argument("--experiment_name", type=str, required=True, help="Name of the experiment run")
     parser.add_argument("--dataset", type=str, required=True, help="Name of dataset")
     parser.add_argument("--dataset_truncate", type=int, default=None, help="Truncate dataset to first N samples")
