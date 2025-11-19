@@ -14,7 +14,7 @@ from utu.config import ConfigLoader
 from utu.utils import AgentsUtils
 from utu.agents.common import TaskRecorder
 from training_free_grpo.llm import LLM
-
+from training_free_grpo.admet.verify import verify_one
 
 def load_rollouts(rollout_filename: str) -> list[dict]:
     results = []
@@ -115,7 +115,10 @@ async def rollout_dataset(
                 print("sample BEFORE verify:", sample)
                 print("groundtruth:", sample["groundtruth"])
                 print("=================================\n")
-                sample["reward"] = verify_func(sample, sample["groundtruth"])
+                res = verify_one(sample, sample["response"]) 
+                sample["reward"] = res["reward"]
+                sample["error"] = res["error"]
+                sample["correct"] = res["correct"]
                 
                 # Task succeeded
                 rollouts[sample["runid"]] = sample
@@ -197,6 +200,11 @@ async def main(args):
         from training_free_grpo.web.verify import verify_func
         from training_free_grpo.web.prompts import PROBLEM_WITH_EXPERIENCE_TEMPLATE
         config_name = "simple/search_agent.yaml"
+    elif args.domain == "admet":
+        from training_free_grpo.admet.dataset import load_data
+        from training_free_grpo.admet.verify import verify_func
+        from training_free_grpo.admet.prompts import PROBLEM_WITH_EXPERIENCE_TEMPLATE
+        config_name = "simple/admet_agent.yaml"
     else:
         raise ValueError(f"Unsupported domain: {args.domain}")
 
