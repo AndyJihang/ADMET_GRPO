@@ -37,6 +37,7 @@ def verify_one(sample, response):
     print("sample content:", sample)
     print("response:", response)
     print("============================\n")
+
     y_true = float(sample["groundtruth"])
     y_pred = parse_float_from_response(response)
 
@@ -51,13 +52,19 @@ def verify_one(sample, response):
 
     error = abs(y_pred - y_true)
 
-    # Soft reward (good for regression)
-    reward = 1.0 / (1.0+math.exp(error))
-    print(reward,error)
+    # ========= NEW HARD + PARTIAL REWARD =========
+    # 三档 reward，让 GRPO 有对比信号
+    if error < 0.4:
+        reward = 1.0       # 高质量、近似正确
+        correct = True
+    elif error < 1.5:
+        reward = 0.5       # 部分正确
+        correct = False    # 不作为“正确”样本
+    else:
+        reward = 0.0       # 完全错误
+        correct = False
 
-    # You may define "correct" as being within 1.0
-    tol = 1.0
-    correct = error <= tol
+    print("DEBUG reward/error:", reward, error)
 
     return {
         "reward": reward,
