@@ -161,3 +161,35 @@ MERGE example:
 Return ONLY JSON inside ```json ... ```.
 """
 
+BATCH_EXPERIENCE_UPDATE_TEMPLATE = """
+You are an expert ADMET scientist.
+
+Your task is to update the experience library for predicting Caco-2 permeability.
+
+==================================================
+CURRENT EXPERIENCES:
+{experiences}
+
+REQUESTED UPDATES (operations from critique stage):
+{updates}
+==================================================
+
+You must produce a **revision plan** in **strict JSON** inside triple backticks:
+
+```json
+[
+  {
+    "option": "modify",
+    "modified_from": "G2",
+    "experience": "rewritten/improved experience text here"
+  },
+  {
+    "option": "merge",
+    "merged_from": ["G1", "G4"],
+    "experience": "merged/generalized experience text here"
+  },
+  {
+    "option": "add",
+    "experience": "a new standalone principle for predicting Caco-2 permeability"
+  }
+]
