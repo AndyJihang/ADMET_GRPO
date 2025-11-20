@@ -54,66 +54,110 @@ Give a concise domain-specific summary focusing on molecular properties.
 
 
 SINGLE_QUERY_CRITIQUE_TEMPLATE = """
-You are an expert in ADMET and molecular permeability.
+You are an expert in ADMET and Caco-2 molecular permeability analysis.
 
-Here are several trajectories (model attempts) for the same prediction task:
+Your job is to improve the reasoning experience-base for predicting Caco-2 permeability.
 
-Problem (molecule):
+==================================================
+PROBLEM (Molecule):
 {problem}
 
-Ground truth Caco-2 permeability:
+GROUND TRUTH Caco-2 permeability:
 {answer}
 
-Existing experiences:
+CURRENT EXPERIENCE LIBRARY:
 {experiences}
 
-Trajectories:
+TRAJECTORIES (each includes reasoning & predicted value):
 {trajectories}
+==================================================
 
 Your task:
-1. Identify reasoning mistakes.
-2. Identify useful correct patterns.
-3. Propose at most {max_operations} experience updates, in JSON.
+1. Identify **incorrect or misleading reasoning patterns** in the trajectories.
+2. Identify **useful reasoning that should be added as new experience**.
+3. Reference the CURRENT EXPERIENCE LIBRARY to decide:
+   - Which experiences should be **modified** (option = "modify")
+   - Which experiences should be **merged** (option = "merge")
+   - Which new experiences should be **added** (option = "add")
+4. You MUST output **at most {max_operations} operations**.
+5. You MUST output valid JSON inside ```json ... ```.
+6. If no update is useful, output an empty array: `[]`.
 
-Possible operations:
-- "add": create a new experience
-- "modify": rewrite an existing experience ("modified_from": experience ID)
-- "merge": merge multiple experiences into a new one ("merged_from": list of IDs)
+IMPORTANT — JSON FORMAT (STRICT):
+Each operation must be one of the following forms:
 
-Your output MUST be JSON inside ```json ... ```
+ADD:
+{
+  "option": "add",
+  "experience": "a short, standalone rule or insight about Caco-2 permeability"
+}
+
+MODIFY:
+{
+  "option": "modify",
+  "modified_from": "G2",
+  "experience": "the improved rewritten experience"
+}
+
+MERGE:
+{
+  "option": "merge",
+  "merged_from": ["G1", "G4"],
+  "experience": "the merged, generalized experience"
+}
+
+You MUST NOT include any explanation outside JSON.
+Return ONLY JSON inside ```json ... ```.
+
+Begin your output now.
 """
+
 
 
 SINGLE_QUERY_CRITIQUE_NO_GT_TEMPLATE = """
-You are an expert in ADMET and molecular permeability.
+You are an expert in ADMET and Caco-2 molecular permeability analysis.
 
-Here are several trajectories (model attempts) for the same prediction task:
+Your job is to improve the reasoning experience-base for predicting Caco-2 permeability.
 
-Problem (molecule):
+==================================================
+PROBLEM (Molecule):
 {problem}
 
-Existing experiences:
+CURRENT EXPERIENCE LIBRARY:
 {experiences}
 
-Trajectories:
+TRAJECTORIES (each includes reasoning & predicted value):
 {trajectories}
+==================================================
 
 Your task:
-1. Identify patterns.
-2. Suggest improvements.
-3. Output at most {max_operations} operations in JSON.
+1. Identify reasoning mistakes or missing insights.
+2. Suggest useful new experiences or corrections.
+3. You MUST output at most {max_operations} operations.
+4. If nothing needs to be changed, output an empty list `[]`.
+
+STRICT JSON FORMAT:
+
+ADD example:
+{
+  "option": "add",
+  "experience": "new insight..."
+}
+
+MODIFY example:
+{
+  "option": "modify",
+  "modified_from": "G3",
+  "experience": "rewritten experience..."
+}
+
+MERGE example:
+{
+  "option": "merge",
+  "merged_from": ["G1", "G2"],
+  "experience": "combined experience..."
+}
+
+Return ONLY JSON inside ```json ... ```.
 """
 
-
-BATCH_EXPERIENCE_UPDATE_TEMPLATE = """
-You are an ADMET expert. Merge, refine, or rewrite experiences to create better
-general rules for predicting Caco-2 permeability.
-
-Current experiences:
-{experiences}
-
-Operations (proposed updates):
-{updates}
-
-Return the revised plan as JSON inside ```json ... ```
-"""
