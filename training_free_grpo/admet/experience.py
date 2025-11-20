@@ -299,6 +299,46 @@ class ExperienceUpdater:
                 print("Last error when decoding revision_plan:", last_error)
             return candidate_experiences
 
+        # ============ ADMET 特殊分支：LLM 返回的是 general_rules =========== #
+        if isinstance(revision_plan, dict) and "general_rules_for_predicting_Caco-2_permeability" in revision_plan:
+            rules = revision_plan["general_rules_for_predicting_Caco-2_permeability"]
+            print(f"Detected {len(rules)} general ADMET rules; converting to experiences.")
+
+            new_experiences = copy.deepcopy(candidate_experiences)
+            # 继续沿用前面累积的 max_ID（已有 C0, C1... 时不覆盖）
+            start_id = len(new_experiences)
+            local_id = 0
+
+            for i, rule_obj in enumerate(rules):
+                # 允许 rule_obj 既可以是 dict 也可以是纯字符串
+                if isinstance(rule_obj, dict):
+                    title = rule_obj.get("rule", f"Rule {i+1}")
+                    desc = rule_obj.get("description", "")
+                    exp_text = f"{title}: {desc}"
+                else:
+                    exp_text = str(rule_obj)
+
+                exp_key = f"C{start_id + local_id}"
+                new_experiences[exp_key] = exp_text
+                local_id += 1
+
+            print(f"- Num of revised candidate experiences (ADMET rules): {len(new_experiences)}")
+
+            # 写文件
+            with open(filename, "w") as f:
+                json.dump(
+                    {
+                        "operations": all_operations,
+                        "response": response,
+                        "revision_plan": revision_plan,
+                        "new_experiences": new_experiences,
+                    },
+                    f,
+                    indent=2,
+                )
+            return new_experiences
+        # ================== 其他 domain（math / web）的原始逻辑 ================== #
+
         # --- DEBUG 4: 把 revision_plan 统一整理成 list[dict] ---
         if isinstance(revision_plan, dict):
             # 如果是 dict，例如 {"rule_id": {...}}, 把 value 当作 operation
@@ -329,7 +369,7 @@ class ExperienceUpdater:
 
         print(f"- Num of valid operations in revision_plan: {len(valid_operations)}")
 
-        # 真正修改 experiences
+        # 真正修改 experiences（原逻辑）
         new_experiences = copy.deepcopy(candidate_experiences)
         for operation in valid_operations:
             try:
@@ -348,6 +388,7 @@ class ExperienceUpdater:
                 print("Error: failed to complete experience update:", operation, "|", e)
 
         print("- Num of revised candidate experiences:", len(new_experiences))
+
 
         # 写文件
         with open(filename, "w") as f:
