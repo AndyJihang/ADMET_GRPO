@@ -65,6 +65,23 @@ async def run_grpo_single_sample(worker_agent, problem: str, gt: float,
             if rew > best_reward:
                 best_reward = rew
                 best_pred = pred
+        for r in rollouts[-grpo_n:]:
+            # 有些 domain（比如 math）可能有 'answer'，ADMET 只有 'response'
+            raw = r.get("answer", r.get("response", None))
+            if raw is None:
+                continue
+
+            try:
+                pred = float(raw)
+            except Exception:
+                continue
+
+            rew = reward_fn(pred, gt)
+
+            if rew > best_reward:
+                best_reward = rew
+                best_pred = pred
+
 
     return best_pred
 
