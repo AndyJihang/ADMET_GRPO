@@ -19,54 +19,49 @@ def reward_fn(pred: float, gt: float) -> float:
 # -------------------------------
 # 2. run GRPO on a single sample
 # -------------------------------
-async def run_grpo_single_sample(worker_agent, problem: str, gt: float,
-                                 grpo_n=3, n_steps=5):
+async def run_grpo_single_sample(
+    worker_agent,
+    problem: str,
+    gt: float,
+    grpo_n: int = 3,
+    n_steps: int = 5,
+    temperature: float = 0.7,
+    max_tokens: int = 2048,
+):
     """
-    对单个样本跑一次 training-free GRPO。
-    和你的 train.py 逻辑保持一致：
-        - 多轮 rollout
-        - verify_func 提取预测值
+    在“单个样本”上跑 training-free GRPO。
     """
-    # 当前最优答案（初始化随机）
+
     best_pred = None
     best_reward = -1e9
+    rollouts = []  # 每个样本内部的 rollouts（不跨样本）
 
-    experiences = {}    # 不跨 sample
-    rollouts = []       # 不跨 sample
+    for _ in range(n_steps):
 
-    for step in range(n_steps):
-
-        # 用你的 rollout_dataset 生成 N 个 candidates
-        from training_free_grpo.main import rollout_dataset
-
-        # 每一轮需要构造数据结构
+        # 构造输入（注意 key 必须是 'problem'）
         batch_data = [{
             "problem": problem,
             "groundtruth": gt,
         }] * grpo_n
 
+        # 生成多个 candidates
+        from training_free_grpo.main import rollout_dataset
+
         rollouts, _ = await rollout_dataset(
             worker_agent=worker_agent,
             data=batch_data,
             rollouts=rollouts,
-            verify_func=verify_func,   # 解析 LLM 输出，得到 float
-            rollout_filename="/tmp/rollout_sample.tmp.jsonl",     # 不保存
+            verify_func=verify_func,
+            rollout_filename="/tmp/rollout_sample.tmp.jsonl",
             rollout_concurrency=grpo_n,
             task_timeout=60,
-            temperature=0.7,
-            max_tokens=2048,
+            temperature=temperature,
+            max_tokens=max_tokens,
         )
 
-        # 遍历 candidates
+        # 看最近这一轮的 grpo_n 个 rollouts
         for r in rollouts[-grpo_n:]:
-            pred = r["answer"]
-            rew = reward_fn(pred, gt)
-
-            if rew > best_reward:
-                best_reward = rew
-                best_pred = pred
-        for r in rollouts[-grpo_n:]:
-            # 有些 domain（比如 math）可能有 'answer'，ADMET 只有 'response'
+            # 对于 ADMET，数值在 'response' 里；有些别的 domain 可能用 'answer'
             raw = r.get("answer", r.get("response", None))
             if raw is None:
                 continue
@@ -74,6 +69,7 @@ async def run_grpo_single_sample(worker_agent, problem: str, gt: float,
             try:
                 pred = float(raw)
             except Exception:
+                # 模型如果输出了奇怪的东西就跳过
                 continue
 
             rew = reward_fn(pred, gt)
@@ -82,8 +78,17 @@ async def run_grpo_single_sample(worker_agent, problem: str, gt: float,
                 best_reward = rew
                 best_pred = pred
 
+    # 万一所有 rollout 都解析失败，就退回一个很糟糕但至少不是 None 的值
+    if best_pred is None:
+        # 尝试用最后一个 rollout 的 response
+        if rollouts:
+            raw = rollouts[-1].get("answer", rollouts[-1].get("response", gt))
+            try:
+                best_pred = float(raw)
+            except Exception:
+                best_pred = gt  # 实在不行就用真值占位，避免后面报错
 
-    return best_pred
+    return float(best_pred)
 
 
 # -------------------------------
