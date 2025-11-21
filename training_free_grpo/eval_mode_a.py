@@ -41,7 +41,7 @@ async def run_grpo_single_sample(worker_agent, problem: str, gt: float,
 
         # 每一轮需要构造数据结构
         batch_data = [{
-            "prompt": problem,
+            "problem": problem,
             "groundtruth": gt,
         }] * grpo_n
 
