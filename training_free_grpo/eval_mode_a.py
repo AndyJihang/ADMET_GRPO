@@ -50,7 +50,7 @@ async def run_grpo_single_sample(worker_agent, problem: str, gt: float,
             data=batch_data,
             rollouts=rollouts,
             verify_func=verify_func,   # 解析 LLM 输出，得到 float
-            rollout_filename=None,     # 不保存
+            rollout_filename="/tmp/rollout_sample.tmp.jsonl",     # 不保存
             rollout_concurrency=grpo_n,
             task_timeout=60,
             temperature=0.7,
