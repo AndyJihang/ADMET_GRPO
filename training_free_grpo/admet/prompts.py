@@ -91,6 +91,16 @@ You are an expert in ADMET and Caco-2 molecular permeability analysis.
 
 Your job is to improve the reasoning experience-base for predicting Caco-2 permeability.
 
+DOMAIN RANGE & CALIBRATION (VERY IMPORTANT):
+- Typical experimental Caco-2 permeability values (Wang dataset and similar)
+  usually fall between -7.5 and -3.0 log(cm/s).
+- Values above -3.0 log(cm/s) are biologically uncommon and should be treated
+  as over-optimistic in almost all cases.
+- Large, highly polar, peptide-like, or very HBD/HBA-rich molecules often have
+  very low permeability in the -7.5 to -5.5 region.
+- When trajectories predict values that are not compatible with these ranges
+  given the molecular features, you should mark the reasoning as flawed.
+
 ==================================================
 PROBLEM (Molecule):
 {problem}
@@ -106,9 +116,21 @@ TRAJECTORIES (each includes reasoning and a predicted value):
 ==================================================
 
 Your task:
-1. Identify incorrect, incomplete, or misleading reasoning patterns in the trajectories
-   (for example, overemphasizing one feature, ignoring polarity, wrong direction of effect, etc.).
-2. Identify genuinely useful reasoning patterns that could be turned into short, general experiences.
+1. Identify incorrect, incomplete, or misleading reasoning patterns in the trajectories.
+   In particular, pay special attention to:
+   - predictions that are numerically too high (less negative) given the molecule's
+     size, polarity, HBD/HBA count, PSA, and overall structure;
+   - reasoning that underestimates how low permeability can be for peptides or
+     very polar compounds (e.g., predicting around -2.5 or -3.0 when a value near
+     -6.0 or lower is more realistic);
+   - overemphasis on hydrophobic fragments while ignoring strong polarity or
+     multiple amide/carboxylate groups.
+2. Identify genuinely useful reasoning patterns that can be turned into short,
+   general experiences, especially those that:
+   - correctly link high MW + high PSA + many HBD/HBA to very low permeability
+     in the -6.5 to -7.5 region;
+   - correctly down-weight permeability when the structure is peptide-like or
+     strongly polar, even if some hydrophobic fragments exist.
 3. Based on CURRENT EXPERIENCE LIBRARY, decide which experiences should be:
    - modified (option = "modify"),
    - merged (option = "merge"),
@@ -145,6 +167,7 @@ Constraints:
 
 Return ONLY JSON inside ```json ... ```.
 """
+
 
 # ==== 4. 单个问题层面的 critique Prompt（无 GT） ============================
 
