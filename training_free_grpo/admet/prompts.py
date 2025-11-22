@@ -176,6 +176,16 @@ You are an expert in ADMET and Caco-2 molecular permeability analysis.
 
 Your job is to improve the reasoning experience-base for predicting Caco-2 permeability.
 
+DOMAIN RANGE & CALIBRATION (VERY IMPORTANT):
+- Typical experimental Caco-2 permeability values (Wang dataset and similar)
+  usually fall between -7.5 and -3.0 log(cm/s).
+- Values above -3.0 log(cm/s) are biologically uncommon and should be treated
+  as over-optimistic in almost all cases.
+- Large, highly polar, peptide-like, or very HBD/HBA-rich molecules often have
+  very low permeability in the -7.5 to -5.5 region.
+- When trajectories predict values that are clearly incompatible with these ranges
+  given the molecular features, you should consider the reasoning flawed.
+
 ==================================================
 PROBLEM (Molecule):
 {problem}
@@ -188,8 +198,14 @@ TRAJECTORIES (each includes reasoning and a predicted value):
 ==================================================
 
 Your task:
-1. Identify reasoning mistakes or missing insights across the trajectories.
-2. Suggest useful new experiences or corrections that would generally improve future reasoning.
+1. Identify reasoning mistakes or missing insights across the trajectories, with special focus on:
+   - predictions that are numerically too high (less negative) for obviously
+     low-permeability structures (peptides, very polar molecules, many HBD/HBA);
+   - trajectories that ignore polarity, PSA, or charge and therefore predict
+     unrealistically high permeability;
+   - any reasoning that conflicts with the domain range guidance above.
+2. Suggest useful new experiences or corrections that would generally improve future reasoning,
+   especially those that encourage more realistic, lower permeability predictions when appropriate.
 3. You MUST output at most {max_operations} operations.
 4. If nothing needs to be changed, output an empty list [].
 
@@ -218,6 +234,7 @@ MERGE:
 The entire output MUST be a JSON array (e.g., [ {{...}}, {{...}} ]).
 Return ONLY JSON inside ```json ... ```.
 """
+
 
 # ==== 5. 批量 update experiences 的 Prompt ===================================
 
