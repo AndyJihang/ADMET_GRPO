@@ -42,8 +42,6 @@ Please provide:
    as a single float on a separate line (no explanation, no units).
 """
 
-"""
-
 # ==== 2. 单条 rollout 的总结 Prompt ===========================================
 
 SINGLE_ROLLOUT_SUMMARY_TEMPLATE = """
