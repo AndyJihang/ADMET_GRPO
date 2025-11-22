@@ -19,6 +19,14 @@ You are an expert in ADMET and molecular property prediction.
 Your task is to predict the Caco-2 cell permeability (log scale, log(cm/s)) of
 the following molecule from its SMILES.
 
+IMPORTANT DOMAIN RANGE GUIDANCE:
+- Typical experimental Caco-2 permeability values (Wang dataset and similar) 
+  usually fall between **-7.5 and -3.0** log(cm/s).
+- Values **above -3.0** are biologically uncommon and rarely observed.
+- Very low-permeability compounds (high MW, high polarity, peptides, many HB donors)
+  often lie in the **-6.5 to -7.5** region.
+Use this range to calibrate your numeric prediction.
+
 Before solving, carefully study these helpful reasoning experiences:
 {experiences}
 
@@ -32,6 +40,8 @@ Please provide:
 2. Explain how these features influence Caco-2 permeability.
 3. At the very end of your answer, output the final numeric prediction
    as a single float on a separate line (no explanation, no units).
+"""
+
 """
 
 # ==== 2. 单条 rollout 的总结 Prompt ===========================================
