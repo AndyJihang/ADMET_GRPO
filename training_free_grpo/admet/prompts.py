@@ -118,7 +118,7 @@ TRAJECTORIES (each includes reasoning and a predicted value):
 Your task:
 1. Identify incorrect, incomplete, or misleading reasoning patterns in the trajectories.
    In particular, pay special attention to:
-   - predictions that are numerically too high (less negative) given the molecule's
+   - predictions that are numerically too high (less negative) given the molecul‘s 
      size, polarity, HBD/HBA count, PSA, and overall structure;
    - reasoning that underestimates how low permeability can be for peptides or
      very polar compounds (e.g., predicting around -2.5 or -3.0 when a value near
